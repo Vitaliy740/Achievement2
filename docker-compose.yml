@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-numbers}
+      POSTGRES_USER: ${PGUSER:-appuser}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-apppass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    image: alkapone740/three-tier:app-1.0.0
+    build: ./app_server
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${PGUSER:-appuser}:${PGPASSWORD:-apppass}@db:5432/${PGDATABASE:-numbers}
+      MAX_N: ${MAX_N:-9223372036854775807}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+
+  web:
+    image: alkapone740/three-tier:web-1.0.0
+    build: ./web_server
+    environment:
+      APP_SERVER_URL: http://app:8001
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      - app
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

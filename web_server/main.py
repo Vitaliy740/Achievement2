@@ -23,17 +23,16 @@ class InRequest(BaseModel):
     value: int = Field(..., ge=0, description="Натуральное число N≥0")
     # пример для Swagger
     model_config = ConfigDict(json_schema_extra={"example": {"value": 10}})
-
+    
 class OutResponse(BaseModel):
     result: int = Field(..., description="n+1")
-
+    
 class ErrorBody(BaseModel):
     code: str
     message: str
-
+    
 class ErrorResponse(BaseModel):
     error: ErrorBody
-
 
 @app.post(
     "/api/v1/increment",
@@ -48,8 +47,8 @@ class ErrorResponse(BaseModel):
 )
 async def increment(body: InRequest, req: Request):
     """
-    Валидирует вход (через Pydantic) и проксирует на сервер приложений.
-    Теперь Swagger покажет тело запроса.
+    Валидирует вход через Pydantic и проксирует на сервер приложений.
+    Теперь Swagger показывает Request body.
     """
     rid = req.headers.get("X-Request-ID") or str(uuid4())
 
@@ -73,5 +72,5 @@ async def increment(body: InRequest, req: Request):
 
     detail = r.json()
     logging.warning("app_error rid=%s n=%s resp=%s", rid, body.value, detail)
+    # Пробрасываем ошибку приложения как есть
     raise HTTPException(status_code=r.status_code, detail=detail)
-
